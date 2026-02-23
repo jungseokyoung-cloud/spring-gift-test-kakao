@@ -26,18 +26,39 @@ $ARGUMENTS - 행위명과 테스트 유형 (선택)
 ## 핵심 원칙
 
 1. **프로덕션 코드 수정 금지**: 테스트가 실패하더라도 프로덕션 코드를 변경하지 않는다. 생성자가 없으면 리플렉션을, 접근이 제한되면 우회 방법을 사용한다. 검증에 초점을 둔다.
-2. **테스트 유형은 상황에 맞게 판단**: 테스트 유형이 명시되지 않으면 행위의 특성을 분석하여 적절한 유형을 선택한다.
+2. **구현이 아닌 행동을 검증한다**: 구현 의존 테스트는 리팩토링 시 함께 깨진다. 행동 중심 테스트는 내부 변경에 강하다.
+3. **테스트 유형은 상황에 맞게 판단**: 테스트 유형이 명시되지 않으면 행위의 특성을 분석하여 적절한 유형을 선택한다.
    - 도메인 로직만 검증 → Unit
    - DB/트랜잭션 포함 → Integration
    - HTTP 전체 흐름 → Acceptance
 
+## 인수 테스트 품질 기준
+
+생성된 인수 테스트는 다음을 모두 만족해야 한다:
+
+1. **행동 중심**: 구현이 아닌 사용자 관점의 시나리오인가?
+2. **외부 관찰 가능**: 사용자가 볼 수 있는 결과를 검증하는가?
+3. **계약 보호**: 핵심 비즈니스 규칙을 보호하는가?
+4. **실패 의미 전달**: 실패 시 비즈니스 의미를 바로 알 수 있는가?
+5. **리팩토링 내성**: 내부 구현이 바뀌어도 유지되는가?
+
 ## 코드 생성 규칙
 
 ### 공통 규칙
-- **메서드명**: 한글, `행위_조건_결과` 형식
+- **메서드명**: 한글, `[상황]_[행동]하면_[결과]한다` 형식
 - **구조**: given-when-then 주석 포함
 - **Assertion**: AssertJ 사용
 - **Mock**: Mockito 사용 (필요 시)
+
+### 테스트 이름은 설계 도구
+
+테스트 이름은 단순 작명이 아니라, 어떤 행동을 검증하는지 드러내는 설계 도구다.
+응답 코드만이 아닌 행동의 결과를 이름에 담는다.
+
+| | 예시 |
+|---|---|
+| 나쁜 예 | `선물_전송_API_성공` |
+| 좋은 예 | `선물이_전송되면_재고가_감소한다` |
 
 ### 계층별 템플릿
 
@@ -67,7 +88,6 @@ class [Entity]Test {
 #### Integration Test (Service)
 ```java
 @SpringBootTest
-@Transactional
 class [Service]Test {
 
     @Autowired
@@ -105,11 +125,12 @@ class [Feature]AcceptanceTest {
 
     @BeforeEach
     void setUp() {
+        [repository].deleteAll();
         // 테스트 데이터 준비
     }
 
     @Test
-    void API_행위_결과() {
+    void [상황]_[행동]하면_[결과]한다() {
         // given
         HttpHeaders headers = new HttpHeaders();
         [Request] request = new [Request](...);
@@ -124,6 +145,7 @@ class [Feature]AcceptanceTest {
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        // 응답만이 아닌, 행동의 결과를 검증한다
     }
 }
 ```
@@ -161,7 +183,7 @@ class [Feature]AcceptanceTest {
 |------------|----------|
 | Unit | 상태 변경, 예외 발생 |
 | Integration | DB 반영, 트랜잭션, Mock 호출 |
-| Acceptance | HTTP 상태, 응답 본문, "다음 행동" 검증 |
+| Acceptance | HTTP 상태, 행동의 결과 (상태 변경, 데이터 반영 등) |
 
 ## @DirtiesContext 사용 시
 
