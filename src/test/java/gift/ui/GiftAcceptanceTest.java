@@ -68,7 +68,7 @@ class GiftAcceptanceTest {
     class GiveGift {
 
         @Test
-        void 선물_전송_API_성공() {
+        void 선물이_전송되면_재고가_감소한다() {
             // given
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -94,7 +94,6 @@ class GiftAcceptanceTest {
             // then
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            // 재고 감소 확인 (다음 행동 검증)
             Option updated = optionRepository.findById(option.getId()).orElseThrow();
             assertThat(updated.getQuantity()).isEqualTo(7);
         }
