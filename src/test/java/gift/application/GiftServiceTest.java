@@ -13,26 +13,21 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Field;
 import java.util.NoSuchElementException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-@AutoConfigureMockMvc
 @Transactional
 class GiftServiceTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private GiftService giftService;
 
     @Autowired
     private OptionRepository optionRepository;
@@ -59,44 +54,32 @@ class GiftServiceTest {
         receiver = memberRepository.save(new Member("받는사람", "receiver@test.com"));
     }
 
-    private String giftRequestJson(Long optionId, int quantity, Long receiverId, String message) {
-        return """
-                {
-                    "optionId": %d,
-                    "quantity": %d,
-                    "receiverId": %d,
-                    "message": "%s"
-                }
-                """.formatted(optionId, quantity, receiverId, message);
+    private GiveGiftRequest createRequest(Long optionId, int quantity, Long receiverId, String message) throws Exception {
+        GiveGiftRequest request = new GiveGiftRequest();
+        setField(request, "optionId", optionId);
+        setField(request, "quantity", quantity);
+        setField(request, "receiverId", receiverId);
+        setField(request, "message", message);
+        return request;
+    }
+
+    private void setField(Object target, String fieldName, Object value) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     @Nested
-    @DisplayName("POST /api/gifts: 선물 전송")
+    @DisplayName("give: 선물 전송")
     class Give {
-
-        @Test
-        void 선물_전송_성공_시_200을_반환한다() throws Exception {
-            // given
-            String body = giftRequestJson(option.getId(), 3, receiver.getId(), "선물입니다");
-
-            // when & then
-            mockMvc.perform(post("/api/gifts")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header("Member-Id", sender.getId())
-                            .content(body))
-                    .andExpect(status().isOk());
-        }
 
         @Test
         void 선물_전송_성공_시_재고가_차감된다() throws Exception {
             // given
-            String body = giftRequestJson(option.getId(), 3, receiver.getId(), "선물입니다");
+            GiveGiftRequest request = createRequest(option.getId(), 3, receiver.getId(), "선물입니다");
 
             // when
-            mockMvc.perform(post("/api/gifts")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header("Member-Id", sender.getId())
-                    .content(body));
+            giftService.give(request, sender.getId());
 
             // then
             Option found = optionRepository.findById(option.getId()).orElseThrow();
@@ -104,45 +87,34 @@ class GiftServiceTest {
         }
 
         @Test
-        void 존재하지_않는_옵션으로_전송하면_예외가_발생한다() {
+        void 존재하지_않는_옵션으로_전송하면_예외가_발생한다() throws Exception {
             // given
-            String body = giftRequestJson(999L, 1, receiver.getId(), "선물입니다");
+            GiveGiftRequest request = createRequest(999L, 1, receiver.getId(), "선물입니다");
 
             // when & then
-            assertThatThrownBy(() -> mockMvc.perform(post("/api/gifts")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header("Member-Id", sender.getId())
-                    .content(body)))
-                    .rootCause()
+            assertThatThrownBy(() -> giftService.give(request, sender.getId()))
                     .isInstanceOf(NoSuchElementException.class);
         }
 
         @Test
-        void 재고_부족_시_예외가_발생한다() {
+        void 재고_부족_시_예외가_발생한다() throws Exception {
             // given
-            String body = giftRequestJson(option.getId(), 11, receiver.getId(), "선물입니다");
+            GiveGiftRequest request = createRequest(option.getId(), 11, receiver.getId(), "선물입니다");
 
             // when & then
-            assertThatThrownBy(() -> mockMvc.perform(post("/api/gifts")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header("Member-Id", sender.getId())
-                    .content(body)))
-                    .rootCause()
+            assertThatThrownBy(() -> giftService.give(request, sender.getId()))
                     .isInstanceOf(IllegalStateException.class);
         }
 
         @Test
-        void 재고_부족_시_재고가_변경되지_않는다() {
+        void 재고_부족_시_재고가_변경되지_않는다() throws Exception {
             // given
-            String body = giftRequestJson(option.getId(), 11, receiver.getId(), "선물입니다");
+            GiveGiftRequest request = createRequest(option.getId(), 11, receiver.getId(), "선물입니다");
 
             // when
             try {
-                mockMvc.perform(post("/api/gifts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Member-Id", sender.getId())
-                        .content(body));
-            } catch (Exception ignored) {
+                giftService.give(request, sender.getId());
+            } catch (IllegalStateException ignored) {
             }
 
             // then
