@@ -185,18 +185,14 @@ class [Feature]AcceptanceTest {
 | Integration | DB 반영, 트랜잭션, Mock 호출 |
 | Acceptance | HTTP 상태, 행동의 결과 (상태 변경, 데이터 반영 등) |
 
-## @DirtiesContext 사용 시
+## @DirtiesContext 사용 금지
 
-**중요**: `@DirtiesContext`를 사용해야 하는 경우, 반드시 사용자에게 알림:
+`@DirtiesContext`는 스프링 컨텍스트를 재생성하여 테스트 속도를 크게 저하시킨다.
+`@DirtiesContext` 없이 테스트가 격리되도록 설계한다.
 
-```markdown
-⚠️ **주의: @DirtiesContext 사용**
-
-이 테스트는 스프링 컨텍스트를 오염시킵니다.
-- 이유: [오염 사유]
-- 영향: 테스트 속도 저하
-- 대안 검토: [가능한 대안]
-```
+- `@Transactional` 롤백으로 데이터 격리
+- `@BeforeEach`에서 `deleteAll()`로 데이터 초기화
+- 테스트별 고유 데이터 사용으로 충돌 방지
 
 ## 예시
 
