@@ -25,6 +25,10 @@ public class OptionService {
         return optionRepository.save(new Option(request.getName(), request.getQuantity(), product));
     }
 
+    public Option findById(final Long id) {
+        return optionRepository.findById(id).orElseThrow();
+    }
+
     public List<Option> retrieve() {
         return optionRepository.findAll();
     }
