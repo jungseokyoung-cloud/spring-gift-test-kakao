@@ -127,7 +127,7 @@ class GiftAcceptanceTest {
         }
 
         @Test
-        void 존재하지_않는_옵션이면_500_에러() {
+        void 존재하지_않는_옵션이면_404_에러() {
             // given
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -151,11 +151,11 @@ class GiftAcceptanceTest {
             );
 
             // then
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
 
         @Test
-        void 재고가_부족하면_500_에러() {
+        void 재고가_부족하면_400_에러() {
             // given
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -179,7 +179,7 @@ class GiftAcceptanceTest {
             );
 
             // then
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
             // 재고 변경 없음 확인
             Option updated = optionRepository.findById(option.getId()).orElseThrow();
