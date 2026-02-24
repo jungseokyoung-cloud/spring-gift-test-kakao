@@ -108,29 +108,34 @@ curl http://localhost:28080/api/categories  # 응답 확인
 
 - Java 21
 - Gradle 8.x (Wrapper 포함)
-- Docker / Docker Compose
+- Docker / Docker Compose (Cucumber 테스트 시)
 
-### 전체 테스트 실행
+### 방법 1: 단위/통합 테스트 (H2, Docker 불필요)
 
 ```bash
 ./gradlew test
 ```
 
-### 테스트 유형별 실행
+H2 in-memory DB를 사용합니다. Docker 없이 빠르게 실행됩니다.
+
+### 방법 2: Cucumber 인수 테스트 (PostgreSQL, Docker 자동)
 
 ```bash
-# Cucumber 인수 테스트
 ./gradlew cucumberTest
-
-# 단위 테스트
-./gradlew test --tests "gift.model.*"
-
-# 서비스 통합 테스트
-./gradlew test --tests "gift.application.*"
-
-# API 인수 테스트
-./gradlew test --tests "gift.ui.*"
 ```
+
+Docker 이미지 빌드 → 컨테이너 시작 → 테스트 → 컨테이너 종료가 자동으로 실행됩니다.
+
+### 방법 3: Cucumber 인수 테스트 (PostgreSQL, Docker 수동)
+
+```bash
+./gradlew dockerUp                         # 컨테이너 시작
+curl http://localhost:28080/api/categories  # 응답 확인
+./gradlew e2eTest                          # 테스트 실행
+./gradlew dockerDown                       # 컨테이너 종료
+```
+
+Docker를 직접 관리하면서 테스트합니다. 디버깅이나 반복 실행 시 유용합니다.
 
 ## 결과물
 
