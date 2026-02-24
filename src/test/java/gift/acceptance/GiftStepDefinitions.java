@@ -2,12 +2,6 @@ package gift.acceptance;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gift.model.Member;
-import gift.model.MemberRepository;
-import gift.model.Option;
-import gift.model.OptionRepository;
-import gift.model.Product;
-import gift.model.ProductRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
@@ -27,15 +21,6 @@ public class GiftStepDefinitions {
 
     @Autowired
     private TestRestTemplate restTemplate;
-
-    @Autowired
-    private OptionRepository optionRepository;
-
-    @Autowired
-    private ProductRepository productRepository;
-
-    @Autowired
-    private MemberRepository memberRepository;
 
     @Autowired
     private AcceptanceTestContext context;
@@ -73,20 +58,46 @@ public class GiftStepDefinitions {
     }
 
     @And("{string}에 재고 {int}개인 {string}이 있다")
-    public void 상품에_옵션이_있다(String productName, int quantity, String optionName) {
-        // 옵션 API 없음 - Repository 사용
-        Product product = productRepository.findById(context.getProductId(productName)).orElseThrow();
-        Option option = optionRepository.save(new Option(optionName, quantity, product));
-        context.putOptionId(optionName, option.getId());
+    public void 상품에_옵션이_있다(String productName, int quantity, String optionName) throws Exception {
+        // HTTP: 옵션 생성 (POST /api/options)
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("name", optionName);
+        params.add("quantity", String.valueOf(quantity));
+        params.add("productId", String.valueOf(context.getProductId(productName)));
+
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                "/api/options", params, String.class
+        );
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        JsonNode body = objectMapper.readTree(response.getBody());
+        context.putOptionId(optionName, body.get("id").asLong());
     }
 
     @And("{string}과 {string} 회원이 있다")
-    public void 회원이_있다(String senderName, String receiverName) {
-        // 회원 API 없음 - Repository 사용
-        Member sender = memberRepository.save(new Member(senderName, senderName + "@test.com"));
-        context.putMemberId(senderName, sender.getId());
-        Member receiver = memberRepository.save(new Member(receiverName, receiverName + "@test.com"));
-        context.putMemberId(receiverName, receiver.getId());
+    public void 회원이_있다(String senderName, String receiverName) throws Exception {
+        // HTTP: 보내는 사람 생성 (POST /api/members)
+        MultiValueMap<String, String> senderParams = new LinkedMultiValueMap<>();
+        senderParams.add("name", senderName);
+        senderParams.add("email", senderName + "@test.com");
+
+        ResponseEntity<String> senderResponse = restTemplate.postForEntity(
+                "/api/members", senderParams, String.class
+        );
+        assertThat(senderResponse.getStatusCode().value()).isEqualTo(200);
+        JsonNode senderBody = objectMapper.readTree(senderResponse.getBody());
+        context.putMemberId(senderName, senderBody.get("id").asLong());
+
+        // HTTP: 받는 사람 생성 (POST /api/members)
+        MultiValueMap<String, String> receiverParams = new LinkedMultiValueMap<>();
+        receiverParams.add("name", receiverName);
+        receiverParams.add("email", receiverName + "@test.com");
+
+        ResponseEntity<String> receiverResponse = restTemplate.postForEntity(
+                "/api/members", receiverParams, String.class
+        );
+        assertThat(receiverResponse.getStatusCode().value()).isEqualTo(200);
+        JsonNode receiverBody = objectMapper.readTree(receiverResponse.getBody());
+        context.putMemberId(receiverName, receiverBody.get("id").asLong());
     }
 
     @When("{string}이 {string}에게 {string} {int}개를 선물한다")
@@ -158,9 +169,13 @@ public class GiftStepDefinitions {
     }
 
     @And("{string}의 재고는 {int}개이다")
-    public void 재고_검증(String optionName, int expectedQuantity) {
-        // 옵션 조회 API 없음 - Repository 사용
-        Option found = optionRepository.findById(context.getOptionId(optionName)).orElseThrow();
-        assertThat(found.getQuantity()).isEqualTo(expectedQuantity);
+    public void 재고_검증(String optionName, int expectedQuantity) throws Exception {
+        // HTTP: 옵션 조회 (GET /api/options/{id})
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/options/" + context.getOptionId(optionName), String.class
+        );
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        JsonNode body = objectMapper.readTree(response.getBody());
+        assertThat(body.get("quantity").asInt()).isEqualTo(expectedQuantity);
     }
 }
