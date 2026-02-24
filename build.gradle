@@ -35,6 +35,18 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+tasks.register('dockerBuild', Exec) {
+	commandLine 'docker', 'compose', '--profile', 'e2e', 'build'
+}
+
+tasks.register('dockerUp', Exec) {
+	commandLine 'docker', 'compose', '--profile', 'e2e', 'up', '-d', '--build', '--wait'
+}
+
+tasks.register('dockerDown', Exec) {
+	commandLine 'docker', 'compose', '--profile', 'e2e', 'down'
+}
+
 tasks.register('cucumberTest', Test) {
 	useJUnitPlatform()
 	filter {
