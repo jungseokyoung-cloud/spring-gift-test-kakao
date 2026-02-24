@@ -34,3 +34,10 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+tasks.register('cucumberTest', Test) {
+	useJUnitPlatform()
+	filter {
+		includeTestsMatching 'gift.acceptance.CucumberTest'
+	}
+}
