@@ -72,6 +72,36 @@ H2 in-memory DB를 PostgreSQL로 전환하고, Docker Compose로 테스트 환�
 ./gradlew test            # 전체 테스트
 ```
 
+## 요구사항 3: Application 컨테이너화
+
+### 목표
+
+애플리케이션을 Docker 컨테이너로 빌드하고, Cucumber 테스트가 컨테이너에 HTTP 요청을 보내도록 전환합니다.
+
+### 변경 사항
+
+| 순서 | 파일 | 변경 내용 |
+|------|------|----------|
+| 1 | `Dockerfile` (신규) | Multi-stage build (JDK 빌드 → JRE 실행) |
+| 2 | `.dockerignore` (신규) | 빌드 불필요 파일 제외 |
+| 3 | `compose.yml` | app 서비스 추가 (e2e 프로파일, 28080 포트) |
+| 4 | `application-e2e.properties` (신규) | E2E 프로파일 설정 |
+| 5 | `E2eRestTemplateConfig.java` (신규) | RestTemplate (localhost:28080) |
+| 6 | `CucumberSpringConfig.java` | WebEnvironment.NONE + e2e 프로파일 |
+| 7 | StepDefinitions 3개 | TestRestTemplate → RestTemplate |
+| 8 | `GiftAcceptanceTest.java` | WebEnvironment.NONE + e2e 프로파일 |
+| 9 | `build.gradle` | dockerBuild/dockerUp/dockerDown 태스크 추가 |
+
+### 실행
+
+```bash
+./gradlew dockerBuild                      # Docker 이미지 빌드
+./gradlew dockerUp                         # 컨테이너 시작
+curl http://localhost:28080/api/categories  # 응답 확인
+./gradlew cucumberTest                     # Docker 환경에서 테스트
+./gradlew dockerDown                       # 컨테이너 정리
+```
+
 ## 실행 방법
 
 ### 요구사항
