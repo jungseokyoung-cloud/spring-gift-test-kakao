@@ -24,6 +24,7 @@ dependencies {
 	runtimeOnly 'org.postgresql:postgresql'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 	testImplementation 'org.springframework.boot:spring-boot-docker-compose'
+	testImplementation 'com.h2database:h2'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'io.cucumber:cucumber-java:7.20.1'
 	testImplementation 'io.cucumber:cucumber-spring:7.20.1'
@@ -33,6 +34,9 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	systemProperty 'cucumber.features', 'src/test/resources/no-features'
+	exclude '**/GiftAcceptanceTest.class'
+	exclude '**/CucumberTest.class'
 }
 
 tasks.register('dockerBuild', Exec) {
@@ -47,7 +51,16 @@ tasks.register('dockerDown', Exec) {
 	commandLine 'docker', 'compose', '--profile', 'e2e', 'down'
 }
 
+tasks.register('e2eTest', Test) {
+	useJUnitPlatform()
+	filter {
+		includeTestsMatching 'gift.acceptance.CucumberTest'
+	}
+}
+
 tasks.register('cucumberTest', Test) {
+	dependsOn 'dockerUp'
+	finalizedBy 'dockerDown'
 	useJUnitPlatform()
 	filter {
 		includeTestsMatching 'gift.acceptance.CucumberTest'
