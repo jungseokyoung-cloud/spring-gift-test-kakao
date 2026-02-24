@@ -78,3 +78,10 @@ H2 in-memory DB에서 PostgreSQL로 전환하면서 배운 점들:
 - **@ActiveProfiles("test")**: 프로파일로 dev/test 설정 분리 (ddl-auto, show-sql 등)
 - **DatabaseCleaner**: `deleteAll()` 대신 `TRUNCATE CASCADE`로 테스트 격리 — FK 제약을 무시하고 빠르게 초기화
 - **@Table(name = "options")**: PostgreSQL 예약어 충돌 방지를 위해 테이블명 변경
+
+## 6. Application 컨테이너화
+
+- **Multi-stage build**: 빌드(JDK)와 실행(JRE) 이미지 분리로 크기 최소화
+- **WebEnvironment.NONE**: 내장 서버 없이 외부 Docker 컨테이너에 요청
+- **TestRestTemplate vs RestTemplate**: TestRestTemplate은 내장 서버용, RestTemplate은 외부 서버용
+- **Docker Compose profiles**: `profiles: ["e2e"]`로 E2E 때만 app 컨테이너 실행
