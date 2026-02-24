@@ -79,6 +79,83 @@ Claude.md에 자동 트리거 조건을 추가했습니다:
 - "XXX 테스트 코드 짜줘"
 ```
 
+### 4. Cucumber BDD 도입 과정
+
+Feature 파일로 스펙을 먼저 정의하고, 프로덕션 코드를 수정하는 BDD 흐름을 경험했습니다.
+
+**BDD 흐름:**
+```
+1. Feature 파일에 올바른 기대값 작성 (400, 404)
+2. 테스트 실패 확인 (프로덕션 코드가 500 반환)
+3. GlobalExceptionHandler 추가하여 테스트 통과
+```
+
+**Step Definitions 분리 패턴:**
+
+```
+CommonStepDefinitions     ← 공통 (@Before, 응답 상태코드)
+AcceptanceTestContext     ← 시나리오 간 공유 상태 (@ScenarioScope)
+GiftStepDefinitions       ← gift.feature 전용
+CategoryStepDefinitions   ← category.feature 전용
+ProductStepDefinitions    ← product.feature 전용
+```
+
+**Repository vs HTTP 접근 방식:**
+
+| 기준 | Repository | HTTP |
+|------|-----------|------|
+| 리팩토링 내성 | 낮음 (내부 변경에 영향) | 높음 (API 계약만 유지하면 통과) |
+| 외부 관찰 가능 | 아니오 | 예 |
+| 적합한 용도 | 데이터 정리 (@Before) | Given/When/Then 행위 검증 |
+
+## 요구사항 2: PostgreSQL + Docker Compose 통합
+
+### 목표
+
+H2 in-memory DB를 PostgreSQL로 전환하고, Docker Compose로 테스트 환경을 자동화합니다.
+
+### 변경 사항
+
+| 순서 | 파일 | 변경 내용 |
+|------|------|----------|
+| 1 | `compose.yml` (신규) | PostgreSQL 16 컨테이너 정의 |
+| 2 | `build.gradle` | H2 제거, PostgreSQL 드라이버 + spring-boot-docker-compose 추가 |
+| 3 | `application.properties` | 공통 JPA 설정 (dev 기본값) |
+| 4 | `application-test.properties` (신규) | 테스트 프로파일 설정 |
+| 5 | `Option.java` | `@Table(name = "options")` 추가 (PostgreSQL 호환) |
+| 6 | `DatabaseCleaner.java` (신규) | TRUNCATE CASCADE 기반 테이블 초기화 |
+| 7 | 모든 테스트 클래스 | `@ActiveProfiles("test")` 추가 |
+| 8 | `CommonStepDefinitions.java` | DatabaseCleaner 사용으로 전환 |
+
+## 실행 방법
+
+### 요구사항
+
+- Java 21
+- Gradle 8.x (Wrapper 포함)
+
+### 전체 테스트 실행
+
+```bash
+./gradlew test
+```
+
+### 테스트 유형별 실행
+
+```bash
+# Cucumber 인수 테스트
+./gradlew test --tests "gift.acceptance.CucumberTest"
+
+# 단위 테스트
+./gradlew test --tests "gift.model.*"
+
+# 서비스 통합 테스트
+./gradlew test --tests "gift.application.*"
+
+# API 인수 테스트
+./gradlew test --tests "gift.ui.*"
+```
+
 ## 결과물
 
 ### 테스트 커버리지
